@@ -1,7 +1,9 @@
 var express = require('express');
+var session = require('express-session');
 var util = require('./lib/utility');
 var partials = require('express-partials');
 var bodyParser = require('body-parser');
+var cookieParser = require('cookie-parser');
 
 
 var db = require('./app/config');
@@ -21,15 +23,54 @@ app.use(bodyParser.json());
 // Parse forms (signup/login)
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(express.static(__dirname + '/public'));
-
+app.use(cookieParser());
+app.use(session({
+  // genid: function(req) {
+  //   return genuuid() // use UUIDs for session IDs
+  // },
+  secret: 'keyboard cat'
+}));
 
 app.get('/',
 function(req, res) {
+
+  var username = req.body.username;
+  var password = req.body.password;
+
+  // check if username && password is in the database
+  if( username && password ){
+    req.session.regenerate(function (){
+      req.session.user = username;
+      res.redirect('/restricted');
+    });
+  }
+  else {
+    res.redirect('/login');
+  }
+
   res.render('index');
+});
+
+app.get('/login',
+function(req, res) {
+  res.render('login');
 });
 
 app.get('/create',
 function(req, res) {
+  var username = req.body.username;
+  var password = req.body.password;
+
+  // check if username && password is in the database
+  if( username && password ){
+    req.session.regenerate(function (){
+      req.session.user = username;
+      res.redirect('/restricted');
+    });
+  }
+  else {
+    res.redirect('/login');
+  }
   res.render('index');
 });
 
@@ -38,6 +79,24 @@ function(req, res) {
   Links.reset().fetch().then(function(links) {
     res.send(200, links.models);
   });
+});
+
+app.post('/',
+function(req, res){
+  console.log('app.post/login function is running');
+  var username = req.body.username;
+  var password = req.body.password;
+
+  // check if username && password is in the database
+  if( username && password ){
+    req.session.regenerate(function (){
+      req.session.user = username;
+      res.redirect('/restricted');
+    });
+  }
+  else {
+    res.redirect('/login');
+  }
 });
 
 app.post('/links',
